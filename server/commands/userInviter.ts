@@ -1,4 +1,5 @@
 import { partition, uniqBy } from "es-toolkit/compat";
+import { Op } from "sequelize";
 import { UserRole } from "@shared/types";
 import InviteEmail from "@server/emails/templates/InviteEmail";
 import env from "@server/env";
@@ -52,6 +53,9 @@ export default async function userInviter(
     "username"
   );
   const usernames = normalizedInvites.map((invite) => invite.username);
+  const emails = normalizedInvites.flatMap((invite) =>
+    invite.email ? [invite.email] : []
+  );
 
   if (!can(user, "update", team)) {
     for (const invite of normalizedInvites) {
@@ -68,13 +72,21 @@ export default async function userInviter(
   const existingUsers = await User.findAll({
     where: {
       teamId: user.teamId,
-      username: usernames,
+      [Op.or]: [
+        { username: usernames },
+        { email: emails },
+      ],
     },
   });
-  const existingUsernames = existingUsers.map((existingUser) => existingUser.username);
+  const findExistingUser = (invite: Invite) =>
+    existingUsers.find(
+      (candidate) =>
+        candidate.username === invite.username ||
+        (!!invite.email && candidate.email === invite.email)
+    );
   const [existingInvites, filteredInvites] = partition(
     normalizedInvites,
-    (invite) => existingUsernames.includes(invite.username)
+    (invite) => !!findExistingUser(invite)
   );
   if (
     !env.EMAIL_ENABLED &&
@@ -89,9 +101,7 @@ export default async function userInviter(
   if (existingInvites.some((invite) => invite.password)) {
     authorize(user, "update", team);
     for (const invite of existingInvites) {
-      const existingUser = existingUsers.find(
-        (candidate) => candidate.username === invite.username
-      );
+      const existingUser = findExistingUser(invite);
       if (existingUser && invite.password) {
         existingUser.passwordHash = await hashPassword(invite.password);
         await existingUser.save();

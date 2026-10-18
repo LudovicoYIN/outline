@@ -29,7 +29,8 @@ router.post(
   rateLimiter(RateLimiterStrategy.TenPerHour),
   validate(T.EmailSchema),
   async (ctx: APIContext<T.EmailReq>) => {
-    const { username, password, client, preferOTP } = ctx.input.body;
+    const { username, email, password, client, preferOTP } = ctx.input.body;
+    const credential = (username ?? email ?? "").toLowerCase();
 
     const domain = parseDomain(ctx.request.hostname);
 
@@ -52,8 +53,10 @@ router.post(
 
     const user = await User.scope("withAuthentications").findOne({
       where: env.isCloudHosted
-        ? { teamId: team.id, email: username.toLowerCase() }
-        : { teamId: team.id, username: username.toLowerCase() },
+        ? { teamId: team.id, email: credential }
+        : username
+          ? { teamId: team.id, username: credential }
+          : { teamId: team.id, email: credential },
     });
 
     if (!env.isCloudHosted) {
