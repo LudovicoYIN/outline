@@ -68,9 +68,9 @@ function TeamNew({ user }: Props) {
 
         <Text as="p" type="secondary">
           <Trans
-            defaults="You are creating a new workspace using your current account — <em>{{email}}</em>"
+            defaults="You are creating a new workspace using your current account — <em>{{username}}</em>"
             values={{
-              email: user.email,
+              username: user.username ?? user.email,
             }}
             components={{
               em: <strong />,
@@ -78,8 +78,7 @@ function TeamNew({ user }: Props) {
           />
           .{" "}
           <Trans>
-            To create a workspace under another email please sign up from the
-            homepage
+            To use another account, ask an admin to create it.
           </Trans>
         </Text>
 

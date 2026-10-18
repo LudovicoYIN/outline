@@ -24,6 +24,7 @@ type UserPresentation = {
   color: string;
   role: UserRole;
   isSuspended: boolean;
+  username: string | null;
   email?: string | null;
   language?: string;
   preferences?: UserPreferences | null;
@@ -43,6 +44,7 @@ export default function presentUser(
     color: user.color,
     role: user.role,
     isSuspended: user.isSuspended,
+    username: user.username,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
     deletedAt: user.deletedAt,

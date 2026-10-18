@@ -1,4 +1,3 @@
-import { EmailIcon } from "outline-icons";
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
@@ -25,17 +24,17 @@ type AuthState = "initial" | "email" | "code";
 
 function AuthenticationProvider(props: Props) {
   const { t } = useTranslation();
-  const [authState, setAuthState] = React.useState<AuthState>("initial");
+  const [authState, setAuthState] = React.useState<AuthState>("email");
   const [isSubmitting, setSubmitting] = React.useState(false);
-  const [email, setEmail] = React.useState("");
+  const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [hasAuthError, setHasAuthError] = React.useState(false);
   const { isCreate, id, name, authUrl, onEmailSuccess, preferOTP, ...rest } =
     props;
   const clientType = Desktop.isElectron() ? Client.Desktop : Client.Web;
 
-  const handleChangeEmail = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(event.target.value);
+  const handleChangeUsername = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setUsername(event.target.value);
     setHasAuthError(false);
   };
 
@@ -44,12 +43,12 @@ function AuthenticationProvider(props: Props) {
   ) => {
     event.preventDefault();
 
-    if (authState === "email" && email) {
+    if (authState === "email" && username) {
       setSubmitting(true);
 
       try {
         const response = await client.post(event.currentTarget.action, {
-          email,
+          username,
           password,
           client: clientType,
           preferOTP,
@@ -59,7 +58,7 @@ function AuthenticationProvider(props: Props) {
           window.location.href = response.redirect;
         } else {
           setSubmitting(false);
-          onEmailSuccess?.(email);
+          onEmailSuccess?.(username);
         }
       } catch (_err) {
         setHasAuthError(true);
@@ -87,11 +86,11 @@ function AuthenticationProvider(props: Props) {
           {authState === "email" ? (
             <>
               <InputLarge
-                type="email"
-                name="email"
-                placeholder="me@domain.com"
-                value={email}
-                onChange={handleChangeEmail}
+                type="text"
+                name="username"
+                placeholder={t("Username")}
+                value={username}
+                onChange={handleChangeUsername}
                 disabled={isSubmitting}
                 autoFocus
                 required
@@ -111,14 +110,14 @@ function AuthenticationProvider(props: Props) {
                 required
                 short
               />
-              {hasAuthError && <Text type="secondary">{t("Invalid email or password")}</Text>}
+              {hasAuthError && <Text type="secondary">{t("Invalid username or password")}</Text>}
               <ButtonLarge type="submit" disabled={isSubmitting} {...rest}>
                 {t("Sign In")} →
               </ButtonLarge>
             </>
           ) : (
-            <ButtonLarge type="submit" icon={<EmailIcon />} fullwidth {...rest}>
-              {t("Continue with email and password")}
+            <ButtonLarge type="submit" fullwidth {...rest}>
+              {t("Continue with username and password")}
             </ButtonLarge>
           )}
         </Form>

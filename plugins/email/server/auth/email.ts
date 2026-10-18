@@ -29,7 +29,7 @@ router.post(
   rateLimiter(RateLimiterStrategy.TenPerHour),
   validate(T.EmailSchema),
   async (ctx: APIContext<T.EmailReq>) => {
-    const { email, password, client, preferOTP } = ctx.input.body;
+    const { username, password, client, preferOTP } = ctx.input.body;
 
     const domain = parseDomain(ctx.request.hostname);
 
@@ -51,10 +51,9 @@ router.post(
     }
 
     const user = await User.scope("withAuthentications").findOne({
-      where: {
-        teamId: team.id,
-        email: email.toLowerCase(),
-      },
+      where: env.isCloudHosted
+        ? { teamId: team.id, email: username.toLowerCase() }
+        : { teamId: team.id, username: username.toLowerCase() },
     });
 
     if (!env.isCloudHosted) {
@@ -64,7 +63,7 @@ router.post(
         !user.passwordHash ||
         !(await verifyPassword(password, user.passwordHash))
       ) {
-        throw AuthenticationError("Invalid email or password");
+        throw AuthenticationError("Invalid username or password");
       }
 
       ctx.body = {

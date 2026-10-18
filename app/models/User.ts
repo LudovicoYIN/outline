@@ -58,7 +58,10 @@ class User extends ParanoidModel implements Searchable {
   @observable
   timezone?: string = undefined;
   @observable
-  email: string;
+  email: string | null;
+
+  @observable
+  username: string | null;
 
   @observable
   role: UserRole;
@@ -97,7 +100,7 @@ class User extends ParanoidModel implements Searchable {
 
   @computed
   get searchContent(): string[] {
-    return [this.name, this.email, this.initials].filter(Boolean);
+    return [this.name, this.username, this.email, this.initials].filter(Boolean);
   }
 
   @computed

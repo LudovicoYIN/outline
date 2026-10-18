@@ -4,7 +4,12 @@ import { BaseSchema } from "@server/routes/api/schema";
 
 export const EmailSchema = BaseSchema.extend({
   body: z.object({
-    email: z.email(),
+    username: z
+      .string()
+      .trim()
+      .min(1)
+      .max(64)
+      .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/),
     password: z.string().min(8).max(256).optional(),
     client: z.enum(Client).prefault(Client.Web),
     preferOTP: z.boolean().prefault(false),

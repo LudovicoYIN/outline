@@ -50,7 +50,7 @@ export const GroupMembersPopover = observer(({ group, children }: Props) => {
         key={groupUser.id}
         image={<Avatar model={groupUser.user} size={AvatarSize.Medium} />}
         title={groupUser.user.name}
-        subtitle={groupUser.user.email}
+        subtitle={groupUser.user.username ?? groupUser.user.email}
       />
     ),
     []

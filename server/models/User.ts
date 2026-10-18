@@ -146,6 +146,15 @@ class User extends ParanoidModel<
   @Column(DataType.STRING)
   email: string | null;
 
+  @AllowNull
+  @Length({
+    min: 1,
+    max: 64,
+    msg: "User username must be between 1 and 64 characters",
+  })
+  @Column(DataType.STRING)
+  username: string | null;
+
   @NotContainsUrl
   @Length({
     min: 1,

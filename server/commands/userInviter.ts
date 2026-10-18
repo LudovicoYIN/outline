@@ -6,13 +6,14 @@ import Logger from "@server/logging/Logger";
 import { User, Team } from "@server/models";
 import { UserFlag } from "@server/models/User";
 import type { APIContext } from "@server/types";
-import { DomainNotAllowedError } from "@server/errors";
+import { DomainNotAllowedError, ValidationError } from "@server/errors";
 import { authorize, can } from "@server/policies";
 import { hashPassword } from "@server/utils/localPassword";
 
 export type Invite = {
   name: string;
-  email: string;
+  username?: string;
+  email?: string | null;
   role: UserRole;
   password?: string;
 };
@@ -37,49 +38,59 @@ export default async function userInviter(
     authorize(user, "addGuest", team);
   }
 
-  // filter out empties and obvious non-emails
   const compactedInvites = invites.filter(
-    (invite) => !!invite.email.trim() && invite.email.match("@")
+    (invite) => !!invite.username?.trim() || !!invite.email?.trim()
   );
-  // normalize to lowercase and remove duplicates
   const normalizedInvites = uniqBy(
     compactedInvites.map((invite) => ({
       ...invite,
-      email: invite.email.toLowerCase(),
+      username: (invite.username ?? invite.email?.split("@")[0] ?? "")
+        .trim()
+        .toLowerCase(),
+      email: invite.email?.trim().toLowerCase() ?? null,
     })),
-    "email"
+    "username"
   );
-  // filter out any existing users in the system
-  const emails = normalizedInvites.map((invite) => invite.email);
+  const usernames = normalizedInvites.map((invite) => invite.username);
 
   if (!can(user, "update", team)) {
-    for (const email of emails) {
-      if (!(await team.isDomainAllowed(email))) {
+    for (const invite of normalizedInvites) {
+      if (invite.email && !(await team.isDomainAllowed(invite.email))) {
         throw DomainNotAllowedError();
       }
     }
   }
 
+  if (normalizedInvites.some((invite) => invite.password)) {
+    authorize(user, "update", team);
+  }
+
   const existingUsers = await User.findAll({
     where: {
       teamId: user.teamId,
-      email: emails,
+      username: usernames,
     },
   });
-  const existingEmails = existingUsers.map(
-    (existingUser) => existingUser.email
-  );
+  const existingUsernames = existingUsers.map((existingUser) => existingUser.username);
   const [existingInvites, filteredInvites] = partition(
     normalizedInvites,
-    (invite) => existingEmails.includes(invite.email)
+    (invite) => existingUsernames.includes(invite.username)
   );
+  if (
+    !env.EMAIL_ENABLED &&
+    filteredInvites.some((invite) => !invite.username || !invite.password)
+  ) {
+    throw ValidationError(
+      "Create a username and password account before sharing with this person"
+    );
+  }
   const users = [];
 
   if (existingInvites.some((invite) => invite.password)) {
     authorize(user, "update", team);
     for (const invite of existingInvites) {
       const existingUser = existingUsers.find(
-        (candidate) => candidate.email === invite.email
+        (candidate) => candidate.username === invite.username
       );
       if (existingUser && invite.password) {
         existingUser.passwordHash = await hashPassword(invite.password);
@@ -96,6 +107,7 @@ export default async function userInviter(
       {
         teamId: user.teamId,
         name: invite.name,
+        username: invite.username,
         email: invite.email,
         passwordHash: invite.password ? await hashPassword(invite.password) : undefined,
         role:
@@ -119,7 +131,7 @@ export default async function userInviter(
     );
     users.push(newUser);
 
-    if (!suppressEmail && env.EMAIL_ENABLED) {
+    if (!suppressEmail && env.EMAIL_ENABLED && invite.email) {
       await new InviteEmail({
         to: invite.email,
         language: newUser.language,

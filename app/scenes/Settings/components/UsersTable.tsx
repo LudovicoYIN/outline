@@ -94,7 +94,7 @@ export function UsersTable({ canManage, ...rest }: Props) {
                 </Text>
                 {isMobile && canManage && (
                   <Text type="tertiary" selectable>
-                    {user.email}
+                    {user.username ?? user.email}
                   </Text>
                 )}
               </VStack>
@@ -105,10 +105,10 @@ export function UsersTable({ canManage, ...rest }: Props) {
         canManage
           ? {
               type: "data",
-              id: "email",
-              header: t("Email"),
-              accessor: (user) => user.email,
-              component: (user) => <>{user.email}</>,
+              id: "username",
+              header: t("Username"),
+              accessor: (user) => user.username ?? user.email,
+              component: (user) => <>{user.username ?? user.email}</>,
               width: "4fr",
               hideOnMobile: true,
             }

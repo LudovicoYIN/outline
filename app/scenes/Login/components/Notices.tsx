@@ -58,7 +58,7 @@ function Message({ notice }: { notice: string }) {
     case "email-auth-required":
       return (
         <Trans>
-          Your account uses email sign-in, please sign in with email to
+          Your account uses username and password sign-in, please sign in with your username to
           continue.
         </Trans>
       );

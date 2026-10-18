@@ -92,10 +92,11 @@ export default class UsersStore extends Store<User> {
   @action
   invite = async (
     invites: {
-      email: string;
+      username?: string;
+      email?: string;
       name: string;
       role: UserRole;
-      password: string;
+      password?: string;
     }[]
   ): Promise<User[]> => {
     const res = await client.post(`/users.invite`, {
@@ -221,6 +222,7 @@ export function queriedUsers(users: User[], query?: string) {
         .filter(
           (user) =>
             deburr(user.name.toLocaleLowerCase()).includes(normalizedQuery) ||
+            user.username?.toLocaleLowerCase().includes(normalizedQuery) ||
             user.email?.includes(normalizedQuery)
         )
         .map((user) => ({

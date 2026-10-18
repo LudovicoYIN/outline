@@ -217,7 +217,7 @@ export const UserChangeAvatarDialog = observer(function UserChangeAvatarDialog({
 export function UserChangeEmailDialog({ user, onSubmit }: Props) {
   const { t } = useTranslation();
   const actor = useCurrentUser();
-  const [email, setEmail] = React.useState<string>(user.email);
+  const [email, setEmail] = React.useState<string>(user.email ?? "");
   const [error, setError] = React.useState<string | undefined>();
 
   const handleSubmit = async () => {

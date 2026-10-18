@@ -217,7 +217,7 @@ export const AccessControlList = observer(
                         />
                       }
                       title={membership.user.name}
-                      subtitle={membership.user.email}
+                      subtitle={membership.user.username ?? membership.user.email}
                       actions={
                         <div style={{ marginRight: -8 }}>
                           <InputMemberPermissionSelect

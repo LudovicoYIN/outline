@@ -3,12 +3,10 @@ import { PlusIcon } from "outline-icons";
 import pluralize from "pluralize";
 import * as React from "react";
 import { useTranslation, Trans } from "react-i18next";
-import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import styled from "styled-components";
 import { errToString } from "@shared/utils/error";
 import { UserRole } from "@shared/types";
-import { parseEmail } from "@shared/utils/email";
 import { UserValidation } from "@shared/validations";
 import Button from "~/components/Button";
 import Flex from "~/components/Flex";
@@ -18,9 +16,7 @@ import { InputSelect } from "~/components/InputSelect";
 import { ResizingHeightContainer } from "~/components/ResizingHeightContainer";
 import Text from "~/components/Text";
 import Tooltip from "~/components/Tooltip";
-import useCurrentTeam from "~/hooks/useCurrentTeam";
 import useCurrentUser from "~/hooks/useCurrentUser";
-import usePolicy from "~/hooks/usePolicy";
 import useStores from "~/hooks/useStores";
 
 type Props = {
@@ -28,7 +24,7 @@ type Props = {
 };
 
 type InviteRequest = {
-  email: string;
+  username: string;
   name: string;
   password: string;
 };
@@ -37,17 +33,14 @@ function Invite({ onSubmit }: Props) {
   const [isSaving, setIsSaving] = React.useState(false);
   const [invites, setInvites] = React.useState<InviteRequest[]>([
     {
-      email: "",
+      username: "",
       name: "",
       password: "",
     },
   ]);
   const { users, collections } = useStores();
   const user = useCurrentUser();
-  const team = useCurrentTeam();
   const { t } = useTranslation();
-  const predictedDomain = parseEmail(user.email).domain;
-  const can = usePolicy(team);
   const [role, setRole] = React.useState<UserRole>(UserRole.Member);
 
   const handleSubmit = React.useCallback(
@@ -57,7 +50,9 @@ function Invite({ onSubmit }: Props) {
 
       try {
         const response = await users.invite(
-          invites.filter((i) => i.email).map((memo) => ({ ...memo, role }))
+          invites
+            .filter((invite) => invite.username)
+            .map((memo) => ({ ...memo, role }))
         );
         onSubmit();
 
@@ -68,7 +63,7 @@ function Invite({ onSubmit }: Props) {
             })
           );
         } else {
-          toast.message(t("Those email addresses are already invited"));
+          toast.message(t("Those usernames already exist"));
         }
       } catch (err) {
         toast.error(errToString(err));
@@ -106,7 +101,7 @@ function Invite({ onSubmit }: Props) {
     setInvites((prevInvites) => {
       const newInvites = [...prevInvites];
       newInvites.push({
-        email: "",
+        username: "",
         name: "",
         password: "",
       });
@@ -178,35 +173,9 @@ function Invite({ onSubmit }: Props) {
   return (
     <form onSubmit={handleSubmit}>
       <Flex gap={8} column>
-        {team.guestSignin ? (
-          <Text as="p" type="secondary">
-            <Trans
-              defaults="Invite people to join your workspace. They can sign in with {{signinMethods}} or use their email address."
-              values={{
-                signinMethods: team.signinMethods,
-              }}
-            />{" "}
-            {collectionAccessNote}
-          </Text>
-        ) : (
-          <Text as="p" type="secondary">
-            <Trans
-              defaults="Invite members to join your workspace. They will need to sign in with {{signinMethods}}."
-              values={{
-                signinMethods: team.signinMethods,
-              }}
-            />{" "}
-            {collectionAccessNote}
-            {can.update && (
-              <Trans>
-                As an admin you can also{" "}
-                <Link to="/settings/authentication">enable email sign-in</Link>.
-              </Trans>
-            )}
-          </Text>
-        )}
         <Text as="p" type="secondary">
-          {t("The email address is only used as the username. No email is sent.")}
+          {t("Accounts use a username and password. No email is sent.")}
+          {collectionAccessNote}
         </Text>
         <Flex gap={12} column>
           <InputSelect
@@ -221,14 +190,14 @@ function Invite({ onSubmit }: Props) {
               <Flex key={index} gap={8} column>
                 <Flex gap={8}>
                   <StyledInput
-                    type="email"
-                    name="email"
-                    label={t("Email / username")}
+                    type="text"
+                    name="username"
+                    label={t("Username")}
                     labelHidden={index !== 0}
                     onKeyDown={handleKeyDown}
                     onChange={(ev) => handleChange(ev, index)}
-                    placeholder={`name@${predictedDomain}`}
-                    value={invite.email}
+                    placeholder={t("Username")}
+                    value={invite.username}
                     required={index === 0}
                     autoComplete="off"
                     autoFocus
@@ -245,7 +214,7 @@ function Invite({ onSubmit }: Props) {
                   autoComplete="off"
                   data-1p-ignore
                   value={invite.name}
-                  required={!!invite.email}
+                  required={!!invite.username}
                   flex
                 />
                 </Flex>
@@ -261,7 +230,7 @@ function Invite({ onSubmit }: Props) {
                   data-1p-ignore
                   minLength={8}
                   value={invite.password}
-                  required={!!invite.email}
+                  required={!!invite.username}
                   flex
                 />
               </Flex>

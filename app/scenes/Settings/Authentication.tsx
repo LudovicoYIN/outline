@@ -337,7 +337,7 @@ function Authentication() {
         name="guestSignin"
         description={
           env.EMAIL_ENABLED
-            ? t("Allow members to sign in using their email address")
+            ? t("Allow members to sign in using email")
             : t("The server must have SMTP configured to enable this setting")
         }
         border={false}

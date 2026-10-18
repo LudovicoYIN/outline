@@ -149,7 +149,9 @@ router.post(
     const newUser = await User.createWithCtx(ctx, {
       teamId: team.id,
       name: user.name,
+      username: user.username,
       email: user.email,
+      passwordHash: user.passwordHash,
       role: UserRole.Admin,
     });
 

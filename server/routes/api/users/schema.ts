@@ -219,10 +219,21 @@ export const UsersInviteSchema = z.object({
   body: z.object({
     invites: z.array(
       z.object({
-        email: z.email(),
+        username: z
+          .string()
+          .trim()
+          .min(1)
+          .max(64)
+          .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/)
+          .optional(),
+        email: z.email().optional(),
         name: z.string(),
         role: z.enum(UserRole),
         password: z.string().min(8).max(256).optional(),
+      }).refine((invite) => invite.username || invite.email, {
+        message: "A username is required",
+      }).refine((invite) => !invite.username || !!invite.password, {
+        message: "A password is required for username accounts",
       })
     ),
     suppressEmail: z.boolean().optional(),
