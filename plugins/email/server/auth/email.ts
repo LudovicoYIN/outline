@@ -6,7 +6,7 @@ import InviteAcceptedEmail from "@server/emails/templates/InviteAcceptedEmail";
 import SigninEmail from "@server/emails/templates/SigninEmail";
 import WelcomeEmail from "@server/emails/templates/WelcomeEmail";
 import env from "@server/env";
-import { AuthorizationError } from "@server/errors";
+import { AuthenticationError, AuthorizationError } from "@server/errors";
 import Logger from "@server/logging/Logger";
 import { rateLimiter } from "@server/middlewares/rateLimiter";
 import validate from "@server/middlewares/validate";
@@ -17,6 +17,7 @@ import { VerificationCode } from "@server/utils/VerificationCode";
 import { signIn } from "@server/utils/authentication";
 import { getTokenFromCookie } from "@server/utils/csrf";
 import { getUserForEmailSigninToken } from "@server/utils/jwt";
+import { verifyPassword } from "@server/utils/localPassword";
 import { getTeamFromContext } from "@server/utils/passport";
 import * as T from "./schema";
 import { CSRF } from "@shared/constants";
@@ -28,7 +29,7 @@ router.post(
   rateLimiter(RateLimiterStrategy.TenPerHour),
   validate(T.EmailSchema),
   async (ctx: APIContext<T.EmailReq>) => {
-    const { email, client, preferOTP } = ctx.input.body;
+    const { email, password, client, preferOTP } = ctx.input.body;
 
     const domain = parseDomain(ctx.request.hostname);
 
@@ -55,6 +56,24 @@ router.post(
         email: email.toLowerCase(),
       },
     });
+
+    if (!env.isCloudHosted) {
+      if (
+        !user ||
+        !password ||
+        !user.passwordHash ||
+        !(await verifyPassword(password, user.passwordHash))
+      ) {
+        throw AuthenticationError("Invalid email or password");
+      }
+
+      ctx.body = {
+        redirect: `${team.url}/auth/email.callback?token=${encodeURIComponent(
+          user.getEmailSigninToken(ctx)
+        )}`,
+      };
+      return;
+    }
 
     if (!user) {
       ctx.body = {
@@ -184,7 +203,7 @@ const emailCallback = async (ctx: APIContext<T.EmailCallbackReq>) => {
     return ctx.redirect("/?notice=user-suspended");
   }
 
-  if (user.isInvited) {
+  if (user.isInvited && env.EMAIL_ENABLED) {
     await new WelcomeEmail({
       to: user.email,
       language: user.language,

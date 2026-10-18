@@ -95,10 +95,12 @@ export default class UsersStore extends Store<User> {
       email: string;
       name: string;
       role: UserRole;
+      password: string;
     }[]
   ): Promise<User[]> => {
     const res = await client.post(`/users.invite`, {
       invites,
+      suppressEmail: true,
     });
     invariant(res?.data, "Data should be available");
 

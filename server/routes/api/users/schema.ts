@@ -222,6 +222,7 @@ export const UsersInviteSchema = z.object({
         email: z.email(),
         name: z.string(),
         role: z.enum(UserRole),
+        password: z.string().min(8).max(256).optional(),
       })
     ),
     suppressEmail: z.boolean().optional(),

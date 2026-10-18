@@ -5,6 +5,7 @@ import { BaseSchema } from "@server/routes/api/schema";
 export const EmailSchema = BaseSchema.extend({
   body: z.object({
     email: z.email(),
+    password: z.string().min(8).max(256).optional(),
     client: z.enum(Client).prefault(Client.Web),
     preferOTP: z.boolean().prefault(false),
   }),

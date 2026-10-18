@@ -30,6 +30,7 @@ type Props = {
 type InviteRequest = {
   email: string;
   name: string;
+  password: string;
 };
 
 function Invite({ onSubmit }: Props) {
@@ -38,6 +39,7 @@ function Invite({ onSubmit }: Props) {
     {
       email: "",
       name: "",
+      password: "",
     },
   ]);
   const { users, collections } = useStores();
@@ -61,7 +63,9 @@ function Invite({ onSubmit }: Props) {
 
         if (response.length > 0) {
           toast.success(
-            t("{{ count }} invites sent", { count: response.length })
+            t("{{ count }} accounts created or updated", {
+              count: response.length,
+            })
           );
         } else {
           toast.message(t("Those email addresses are already invited"));
@@ -104,6 +108,7 @@ function Invite({ onSubmit }: Props) {
       newInvites.push({
         email: "",
         name: "",
+        password: "",
       });
       return newInvites;
     });
@@ -200,6 +205,9 @@ function Invite({ onSubmit }: Props) {
             )}
           </Text>
         )}
+        <Text as="p" type="secondary">
+          {t("The email address is only used as the username. No email is sent.")}
+        </Text>
         <Flex gap={12} column>
           <InputSelect
             options={options}
@@ -210,22 +218,23 @@ function Invite({ onSubmit }: Props) {
 
           <ResizingHeightContainer style={{ minHeight: 72, marginBottom: 8 }}>
             {invites.map((invite, index) => (
-              <Flex key={index} gap={8}>
-                <StyledInput
-                  type="email"
-                  name="email"
-                  label={t("Email")}
-                  labelHidden={index !== 0}
-                  onKeyDown={handleKeyDown}
-                  onChange={(ev) => handleChange(ev, index)}
-                  placeholder={`name@${predictedDomain}`}
-                  value={invite.email}
-                  required={index === 0}
-                  autoComplete="off"
-                  autoFocus
-                  data-1p-ignore
-                  flex
-                />
+              <Flex key={index} gap={8} column>
+                <Flex gap={8}>
+                  <StyledInput
+                    type="email"
+                    name="email"
+                    label={t("Email / username")}
+                    labelHidden={index !== 0}
+                    onKeyDown={handleKeyDown}
+                    onChange={(ev) => handleChange(ev, index)}
+                    placeholder={`name@${predictedDomain}`}
+                    value={invite.email}
+                    required={index === 0}
+                    autoComplete="off"
+                    autoFocus
+                    data-1p-ignore
+                    flex
+                  />
                 <StyledInput
                   type="text"
                   name="name"
@@ -236,6 +245,22 @@ function Invite({ onSubmit }: Props) {
                   autoComplete="off"
                   data-1p-ignore
                   value={invite.name}
+                  required={!!invite.email}
+                  flex
+                />
+                </Flex>
+                <StyledInput
+                  type="password"
+                  name="password"
+                  label={t("Password (min 8 characters)")}
+                  labelHidden={index !== 0}
+                  placeholder={t("Password")}
+                  onKeyDown={handleKeyDown}
+                  onChange={(ev) => handleChange(ev, index)}
+                  autoComplete="new-password"
+                  data-1p-ignore
+                  minLength={8}
+                  value={invite.password}
                   required={!!invite.email}
                   flex
                 />
@@ -262,7 +287,7 @@ function Invite({ onSubmit }: Props) {
             data-event-category="invite"
             data-event-action="sendInvites"
           >
-            {isSaving ? `${t("Inviting")}…` : t("Send Invites")}
+            {isSaving ? `${t("Saving")}…` : t("Create Accounts")}
           </Button>
         </Flex>
       </Flex>

@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { Client } from "@shared/types";
 import ButtonLarge from "~/components/ButtonLarge";
 import InputLarge from "~/components/InputLarge";
+import Text from "~/components/Text";
 import PluginIcon from "~/components/PluginIcon";
 import { client } from "~/utils/ApiClient";
 import Desktop from "~/utils/Desktop";
@@ -27,12 +28,15 @@ function AuthenticationProvider(props: Props) {
   const [authState, setAuthState] = React.useState<AuthState>("initial");
   const [isSubmitting, setSubmitting] = React.useState(false);
   const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [hasAuthError, setHasAuthError] = React.useState(false);
   const { isCreate, id, name, authUrl, onEmailSuccess, preferOTP, ...rest } =
     props;
   const clientType = Desktop.isElectron() ? Client.Desktop : Client.Web;
 
   const handleChangeEmail = (event: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(event.target.value);
+    setHasAuthError(false);
   };
 
   const handleSubmitEmail = async (
@@ -46,6 +50,7 @@ function AuthenticationProvider(props: Props) {
       try {
         const response = await client.post(event.currentTarget.action, {
           email,
+          password,
           client: clientType,
           preferOTP,
         });
@@ -57,6 +62,7 @@ function AuthenticationProvider(props: Props) {
           onEmailSuccess?.(email);
         }
       } catch (_err) {
+        setHasAuthError(true);
         setSubmitting(false);
       }
     } else {
@@ -91,13 +97,28 @@ function AuthenticationProvider(props: Props) {
                 required
                 short
               />
+              <InputLarge
+                type="password"
+                name="password"
+                placeholder={t("Password")}
+                value={password}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  setHasAuthError(false);
+                }}
+                disabled={isSubmitting}
+                autoComplete="current-password"
+                required
+                short
+              />
+              {hasAuthError && <Text type="secondary">{t("Invalid email or password")}</Text>}
               <ButtonLarge type="submit" disabled={isSubmitting} {...rest}>
                 {t("Sign In")} →
               </ButtonLarge>
             </>
           ) : (
             <ButtonLarge type="submit" icon={<EmailIcon />} fullwidth {...rest}>
-              {t("Continue with Email")}
+              {t("Continue with email and password")}
             </ButtonLarge>
           )}
         </Form>
@@ -126,6 +147,8 @@ const Wrapper = styled.div`
 const Form = styled.form`
   width: 100%;
   display: flex;
+  flex-direction: column;
+  gap: 8px;
   justify-content: space-between;
 `;
 

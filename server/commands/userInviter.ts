@@ -8,11 +8,13 @@ import { UserFlag } from "@server/models/User";
 import type { APIContext } from "@server/types";
 import { DomainNotAllowedError } from "@server/errors";
 import { authorize, can } from "@server/policies";
+import { hashPassword } from "@server/utils/localPassword";
 
 export type Invite = {
   name: string;
   email: string;
   role: UserRole;
+  password?: string;
 };
 
 type Props = {
@@ -22,7 +24,7 @@ type Props = {
 
 export default async function userInviter(
   ctx: APIContext,
-  { invites, suppressEmail }: Props
+  { invites, suppressEmail = !env.EMAIL_ENABLED }: Props
 ): Promise<{
   sent: Invite[];
   unsent: Invite[];
@@ -73,6 +75,20 @@ export default async function userInviter(
   );
   const users = [];
 
+  if (existingInvites.some((invite) => invite.password)) {
+    authorize(user, "update", team);
+    for (const invite of existingInvites) {
+      const existingUser = existingUsers.find(
+        (candidate) => candidate.email === invite.email
+      );
+      if (existingUser && invite.password) {
+        existingUser.passwordHash = await hashPassword(invite.password);
+        await existingUser.save();
+        users.push(existingUser);
+      }
+    }
+  }
+
   // send and record remaining invites
   for (const invite of filteredInvites) {
     const newUser = await User.createWithCtx(
@@ -81,6 +97,7 @@ export default async function userInviter(
         teamId: user.teamId,
         name: invite.name,
         email: invite.email,
+        passwordHash: invite.password ? await hashPassword(invite.password) : undefined,
         role:
           invite.role === UserRole.Guest
             ? UserRole.Guest
@@ -102,7 +119,7 @@ export default async function userInviter(
     );
     users.push(newUser);
 
-    if (!suppressEmail) {
+    if (!suppressEmail && env.EMAIL_ENABLED) {
       await new InviteEmail({
         to: invite.email,
         language: newUser.language,
