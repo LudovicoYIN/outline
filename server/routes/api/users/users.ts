@@ -74,20 +74,32 @@ router.post(
     }
 
     const replacements = { query: QueryHelper.likeContains(query ?? "") };
+    const teamInclude = {
+      model: Team,
+      attributes: ["id", "name"],
+      required: true,
+    };
     const { results: users, pagination: page } = await paginateQuery(
       ctx,
       ({ offset, limit }) =>
         User.findAll({
           where,
           replacements,
-          include: [
-            { model: Team, attributes: ["id", "name"], required: true },
+          include: [teamInclude],
+          order: [
+            [sort, direction],
+            ["id", "ASC"],
           ],
-          order: [[sort, direction]],
           offset,
           limit,
         }),
-      () => User.count({ where, replacements })
+      () =>
+        User.count({
+          where,
+          replacements,
+          include: [teamInclude],
+          distinct: true,
+        })
     );
 
     ctx.body = {

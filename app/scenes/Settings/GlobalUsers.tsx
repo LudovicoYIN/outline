@@ -88,8 +88,8 @@ function GlobalUsers() {
       const response = await client.post<GlobalUsersResponse>(
         "/users.global_list",
         {
-          offset: pageParams.offset,
-          limit: pageParams.limit,
+          offset: pageParams.offset ?? 0,
+          limit: pageParams.limit ?? 25,
           query: pageParams.query,
           sort: pageParams.sort,
           direction: pageParams.direction,
