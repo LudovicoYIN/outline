@@ -156,7 +156,7 @@ const useSettingsConfig = () => {
         icon: SparklesIcon,
       },
       {
-        name: t("Users"),
+        name: t("Members"),
         path: settingsPath("users"),
         component: Users.Component,
         preload: Users.preload,

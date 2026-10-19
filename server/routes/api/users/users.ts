@@ -76,7 +76,7 @@ router.post(
     const replacements = { query: QueryHelper.likeContains(query ?? "") };
     const teamInclude = {
       model: Team,
-      attributes: ["id", "name"],
+      attributes: ["id", "name", "suspendedAt"],
       required: true,
     };
     const { results: users, pagination: page } = await paginateQuery(
