@@ -22,6 +22,7 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { integrationSettingsPath } from "@shared/utils/routeHelpers";
 import { createLazyComponent as lazy } from "~/components/LazyLoad";
+import env from "~/env";
 import { Hook, PluginManager } from "~/utils/PluginManager";
 import { settingsPath } from "~/utils/routeHelpers";
 import { useComputed } from "./useComputed";
@@ -40,6 +41,7 @@ const Features = lazy(() => import("~/scenes/Settings/Features"));
 const Groups = lazy(() => import("~/scenes/Settings/Groups"));
 const Import = lazy(() => import("~/scenes/Settings/Import"));
 const Integrations = lazy(() => import("~/scenes/Settings/Integrations"));
+const GlobalUsers = lazy(() => import("~/scenes/Settings/GlobalUsers"));
 const Users = lazy(() => import("~/scenes/Settings/Users"));
 const Notifications = lazy(() => import("~/scenes/Settings/Notifications"));
 const Preferences = lazy(() => import("~/scenes/Settings/Preferences"));
@@ -161,6 +163,18 @@ const useSettingsConfig = () => {
         enabled: can.listUsers,
         group: t("Workspace"),
         icon: UserIcon,
+      },
+      {
+        name: t("User management"),
+        path: settingsPath("user-management"),
+        component: GlobalUsers.Component,
+        preload: GlobalUsers.preload,
+        enabled:
+          user.isAdmin &&
+          can.listUsers &&
+          env.GLOBAL_USER_MANAGEMENT_ENABLED,
+        group: t("Workspace"),
+        icon: GroupIcon,
       },
       {
         name: t("Groups"),

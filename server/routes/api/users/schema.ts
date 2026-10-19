@@ -90,6 +90,33 @@ export const UsersListSchema = z
 
 export type UsersListReq = z.infer<typeof UsersListSchema>;
 
+export const UsersGlobalListSchema = BaseSchema.extend({
+  body: z.object({
+    direction: z
+      .string()
+      .optional()
+      .transform((val) => (val !== "ASC" ? "DESC" : val)),
+    sort: z
+      .string()
+      .refine(
+        (val) =>
+          [
+            "name",
+            "email",
+            "username",
+            "role",
+            "lastActiveAt",
+            "createdAt",
+          ].includes(val),
+        { error: "Invalid sort parameter" }
+      )
+      .prefault("name"),
+    query: z.string().optional(),
+  }),
+});
+
+export type UsersGlobalListReq = z.infer<typeof UsersGlobalListSchema>;
+
 export const UsersNotificationsSubscribeSchema = z.object({
   body: z.object({
     eventType: z.enum(NotificationEventType).optional(),

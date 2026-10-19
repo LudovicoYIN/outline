@@ -863,6 +863,21 @@ export class Environment {
   );
 
   /**
+   * Comma-separated list of email addresses allowed to manage users across all workspaces.
+   */
+  @IsOptional()
+  public GLOBAL_USER_MANAGEMENT_ADMINS = this.toOptionalCommaList(
+    environment.GLOBAL_USER_MANAGEMENT_ADMINS
+  );
+
+  /**
+   * Whether global user management is enabled for this installation.
+   */
+  @Public
+  public GLOBAL_USER_MANAGEMENT_ENABLED =
+    !!this.GLOBAL_USER_MANAGEMENT_ADMINS?.length;
+
+  /**
    * The search provider to use. Defaults to "postgres" which uses PostgreSQL
    * full-text search. Alternative providers can be registered via plugins.
    */

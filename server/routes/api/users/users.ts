@@ -10,7 +10,7 @@ import ConfirmUpdateEmail from "@server/emails/templates/ConfirmUpdateEmail";
 import ConfirmUserDeleteEmail from "@server/emails/templates/ConfirmUserDeleteEmail";
 import InviteEmail from "@server/emails/templates/InviteEmail";
 import env from "@server/env";
-import { ValidationError } from "@server/errors";
+import { AuthorizationError, ValidationError } from "@server/errors";
 import logger from "@server/logging/Logger";
 import auth from "@server/middlewares/authentication";
 import { rateLimiter } from "@server/middlewares/rateLimiter";
@@ -32,10 +32,83 @@ import { RateLimiterStrategy } from "@server/utils/RateLimiter";
 import { safeEqual } from "@server/utils/crypto";
 import { QueryHelper } from "@server/storage/QueryHelper";
 import { getDetailsForEmailUpdateToken } from "@server/utils/jwt";
-import pagination from "../middlewares/pagination";
+import pagination, { paginateQuery } from "../middlewares/pagination";
 import * as T from "./schema";
 
 const router = new Router();
+
+router.post(
+  "users.global_list",
+  auth(),
+  pagination(),
+  validate(T.UsersGlobalListSchema),
+  async (ctx: APIContext<T.UsersGlobalListReq>) => {
+    const actor = ctx.state.auth.user;
+    const allowedEmails = env.GLOBAL_USER_MANAGEMENT_ADMINS?.map((email) =>
+      email.toLowerCase()
+    );
+
+    if (
+      !actor.isAdmin ||
+      !actor.email ||
+      !allowedEmails?.includes(actor.email.toLowerCase())
+    ) {
+      throw AuthorizationError();
+    }
+
+    const { query, sort, direction } = ctx.input.body;
+    const where: WhereOptions<User> = {};
+
+    if (query) {
+      where[Op.or] = [
+        Sequelize.literal(
+          `unaccent(LOWER("user"."email")) like unaccent(LOWER(:query))`
+        ),
+        Sequelize.literal(
+          `unaccent(LOWER("user"."name")) like unaccent(LOWER(:query))`
+        ),
+        Sequelize.literal(
+          `unaccent(LOWER("user"."username")) like unaccent(LOWER(:query))`
+        ),
+      ];
+    }
+
+    const replacements = { query: QueryHelper.likeContains(query ?? "") };
+    const { results: users, pagination: page } = await paginateQuery(
+      ctx,
+      ({ offset, limit }) =>
+        User.findAll({
+          where,
+          replacements,
+          include: [
+            { model: Team, attributes: ["id", "name"], required: true },
+          ],
+          order: [[sort, direction]],
+          offset,
+          limit,
+        }),
+      () => User.count({ where, replacements })
+    );
+
+    ctx.body = {
+      pagination: page,
+      data: users.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        lastActiveAt: user.lastActiveAt,
+        isSuspended: user.isSuspended,
+        createdAt: user.createdAt,
+        team: {
+          id: user.team.id,
+          name: user.team.name,
+        },
+      })),
+    };
+  }
+);
 
 router.post(
   "users.list",
