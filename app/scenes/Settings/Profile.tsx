@@ -103,7 +103,7 @@ const Profile = () => {
           <SettingRow border={false} label={t("Email address")} name="email">
             <Input
               type="email"
-              value={user.email}
+              value={user.email ?? ""}
               readOnly
               onClick={handleChangeEmail}
             />

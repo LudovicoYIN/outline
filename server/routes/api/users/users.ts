@@ -74,30 +74,35 @@ router.post(
 
     const { query, sort, direction } = ctx.input.body;
     const where: WhereOptions<User> = {
-      [Op.and]: Sequelize.literal(`"user"."id" IN (
-        SELECT DISTINCT ON (${loginIdentitySql}) "user"."id"
-        FROM "users" AS "user"
-        INNER JOIN "teams" AS "team" ON "team"."id" = "user"."teamId"
-        WHERE "user"."deletedAt" IS NULL AND "team"."deletedAt" IS NULL
-        ORDER BY ${loginIdentitySql}, "user"."createdAt" ASC, "user"."id" ASC
-      )`),
+      [Op.and]: [
+        Sequelize.literal(`"user"."id" IN (
+          SELECT DISTINCT ON (${loginIdentitySql}) "user"."id"
+          FROM "users" AS "user"
+          INNER JOIN "teams" AS "team" ON "team"."id" = "user"."teamId"
+          WHERE "user"."deletedAt" IS NULL AND "team"."deletedAt" IS NULL
+          ORDER BY ${loginIdentitySql}, "user"."createdAt" ASC, "user"."id" ASC
+        )`),
+      ],
+      ...(query
+        ? {
+            [Op.or]: ["email", "name", "username"].map((column) =>
+              Sequelize.where(
+                Sequelize.fn(
+                  "unaccent",
+                  Sequelize.fn("LOWER", Sequelize.col(`user.${column}`))
+                ),
+                {
+                  [Op.like]: Sequelize.fn(
+                    "unaccent",
+                    QueryHelper.likeContains(query.toLowerCase())
+                  ),
+                }
+              )
+            ),
+          }
+        : {}),
     };
 
-    if (query) {
-      where[Op.or] = [
-        Sequelize.literal(
-          `unaccent(LOWER("user"."email")) like unaccent(LOWER(:query))`
-        ),
-        Sequelize.literal(
-          `unaccent(LOWER("user"."name")) like unaccent(LOWER(:query))`
-        ),
-        Sequelize.literal(
-          `unaccent(LOWER("user"."username")) like unaccent(LOWER(:query))`
-        ),
-      ];
-    }
-
-    const replacements = { query: QueryHelper.likeContains(query ?? "") };
     const teamInclude = {
       model: Team,
       attributes: ["id", "name", "suspendedAt"],
@@ -108,7 +113,6 @@ router.post(
       ({ offset, limit }) =>
         User.findAll({
           where,
-          replacements,
           include: [teamInclude],
           order: [
             [sort, direction],
@@ -120,7 +124,6 @@ router.post(
       () =>
         User.count({
           where,
-          replacements,
           include: [teamInclude],
           distinct: true,
         })

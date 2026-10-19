@@ -4,6 +4,7 @@ import Koa from "koa";
 import bodyParser from "koa-body";
 import Router from "@koa/router";
 import isUUID from "validator/lib/isUUID";
+import { Client } from "@shared/types";
 import { AuthenticationError, AuthorizationError } from "@server/errors";
 import authMiddleware from "@server/middlewares/authentication";
 import coalesceBody from "@server/middlewares/coaleseBody";
@@ -50,6 +51,8 @@ router.get("/switch", authMiddleware(), async (ctx: APIContext) => {
     user: targetUser,
     team: targetUser.team,
     isNewTeam: false,
+    isNewUser: false,
+    client: Client.Web,
   });
 });
 

@@ -100,7 +100,9 @@ class User extends ParanoidModel implements Searchable {
 
   @computed
   get searchContent(): string[] {
-    return [this.name, this.username, this.email, this.initials].filter(Boolean);
+    return [this.name, this.username, this.email, this.initials].filter(
+      (value): value is string => !!value
+    );
   }
 
   @computed
