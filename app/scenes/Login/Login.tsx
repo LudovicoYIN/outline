@@ -48,6 +48,8 @@ import { navigateToSubdomain } from "./urls";
 import lazyWithRetry from "@shared/utils/lazyWithRetry";
 import { getRedirectUrl } from "~/utils/urls";
 
+const LOGIN_BRAND_NAME = "onecrewdev";
+
 const WorkspaceSetup = lazyWithRetry(
   () => import("./components/WorkspaceSetup")
 );
@@ -347,7 +349,7 @@ function Login({ children, onBack }: Props) {
                 <OutlineIcon size={28} />
               )}
             </BrandMark>
-            <BrandName>{config.name || env.APP_NAME}</BrandName>
+            <BrandName>{LOGIN_BRAND_NAME}</BrandName>
           </BrandIdentity>
           <BrandSymbol aria-hidden="true">
             <OutlineIcon size={112} color="#B8E8D1" />
@@ -357,7 +359,7 @@ function Login({ children, onBack }: Props) {
         <FormPanel>
           <FormContent>
             <PageTitle
-              title={config.name ? `${config.name} – ${t("Login")}` : t("Login")}
+              title={`${LOGIN_BRAND_NAME} – ${t("Login")}`}
             />
             {isCreate ? (
               <>
@@ -374,7 +376,7 @@ function Login({ children, onBack }: Props) {
               <>
                 <StyledHeading as="h2">
                   {t("Log in to {{ authProviderName }}", {
-                    authProviderName: config.name || env.APP_NAME,
+                    authProviderName: LOGIN_BRAND_NAME,
                   })}
                 </StyledHeading>
                 {children?.(config)}
