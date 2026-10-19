@@ -3,20 +3,55 @@ import { addMonths } from "date-fns";
 import Koa from "koa";
 import bodyParser from "koa-body";
 import Router from "@koa/router";
-import { AuthenticationError } from "@server/errors";
+import isUUID from "validator/lib/isUUID";
+import { AuthenticationError, AuthorizationError } from "@server/errors";
 import authMiddleware from "@server/middlewares/authentication";
 import coalesceBody from "@server/middlewares/coaleseBody";
-import { Collection, Team, View } from "@server/models";
+import { Collection, Team, User, View } from "@server/models";
 import AuthenticationHelper from "@server/models/helpers/AuthenticationHelper";
 import type { AppState, AppContext, APIContext } from "@server/types";
 import { AuthenticationType } from "@server/types";
 import { verifyCSRFToken } from "@server/middlewares/csrf";
+import { signIn } from "@server/utils/authentication";
 import { getJWTPayload } from "@server/utils/jwt";
 
 const app = new Koa<AppState, AppContext>();
 const router = new Router();
 
 router.use(passport.initialize());
+
+router.get("/switch", authMiddleware(), async (ctx: APIContext) => {
+  const { user } = ctx.state.auth;
+  const teamId = ctx.request.query.teamId;
+
+  if (typeof teamId !== "string" || !isUUID(teamId)) {
+    throw AuthorizationError();
+  }
+
+  const identity = user.email
+    ? { email: user.email }
+    : user.username
+      ? { username: user.username }
+      : null;
+
+  if (!identity) {
+    throw AuthorizationError();
+  }
+
+  const targetUser = await User.scope("withTeam").findOne({
+    where: { teamId, ...identity },
+  });
+
+  if (!targetUser) {
+    throw AuthorizationError();
+  }
+
+  await signIn(ctx, "email", {
+    user: targetUser,
+    team: targetUser.team,
+    isNewTeam: false,
+  });
+});
 
 // dynamically register available authentication provider routes
 void (async () => {

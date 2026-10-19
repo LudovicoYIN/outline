@@ -16,8 +16,11 @@ import { dialogActionFactory } from "./common";
 import { TeamSection } from "../sections";
 
 export const switchTeamsList = ({ stores }: { stores: RootStore }) =>
-  stores.auth.availableTeams?.map<ExternalLinkAction>((session) =>
-    createExternalLinkAction({
+  stores.auth.availableTeams?.map<ExternalLinkAction>((session) => {
+    const url = new URL("/auth/switch", session.url);
+    url.searchParams.set("teamId", session.id);
+
+    return createExternalLinkAction({
       id: `switch-${session.id}`,
       name: session.name,
       analyticsName: "Switch workspace",
@@ -37,10 +40,10 @@ export const switchTeamsList = ({ stores }: { stores: RootStore }) =>
       ),
       visible: ({ currentTeamId }: ActionContext) =>
         currentTeamId !== session.id,
-      url: session.url,
+      url: url.href,
       target: "_self",
-    })
-  ) ?? [];
+    });
+  }) ?? [];
 
 export const switchTeam = createActionWithChildren({
   name: ({ t }) => t("Switch workspace"),
