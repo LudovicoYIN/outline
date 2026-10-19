@@ -337,83 +337,96 @@ function Login({ children, onBack }: Props) {
       <ChangeLanguage locale={detectLanguage()} />
       <SwitchHostButton />
 
-      <Centered gap={12}>
-        <PageTitle
-          title={config.name ? `${config.name} – ${t("Login")}` : t("Login")}
-        />
-        <Logo>
-          {config.logo && !isCreate ? (
-            <TeamLogo size={AvatarSize.XXLarge} src={config.logo} />
-          ) : (
-            <OutlineIcon size={AvatarSize.XXLarge} />
-          )}
-        </Logo>
-        {isCreate ? (
-          <>
-            <StyledHeading as="h2" centered>
-              {t("Create a workspace")}
-            </StyledHeading>
-            <Content>
-              {t(
-                "Get started by choosing a sign-in method for your new workspace below…"
+      <LoginShell>
+        <BrandPanel>
+          <BrandIdentity>
+            <BrandMark>
+              {config.logo && !isCreate ? (
+                <TeamLogo size={AvatarSize.XXLarge} src={config.logo} />
+              ) : (
+                <OutlineIcon size={28} />
               )}
-            </Content>
-          </>
-        ) : (
-          <>
-            <StyledHeading as="h2" centered>
-              {t("Log in to {{ authProviderName }}", {
-                authProviderName: config.name || env.APP_NAME,
-              })}
-            </StyledHeading>
-            {children?.(config)}
-          </>
-        )}
-        <Notices />
-        {defaultProvider && (
-          <React.Fragment key={defaultProvider.id}>
-            <AuthenticationProvider
-              isCreate={isCreate}
-              onEmailSuccess={handleEmailSuccess}
-              preferOTP={preferOTP}
-              {...defaultProvider}
+            </BrandMark>
+            <BrandName>{config.name || env.APP_NAME}</BrandName>
+          </BrandIdentity>
+          <BrandSymbol aria-hidden="true">
+            <OutlineIcon size={112} color="#B8E8D1" />
+          </BrandSymbol>
+          <BrandFooter>{window.location.host}</BrandFooter>
+        </BrandPanel>
+        <FormPanel>
+          <FormContent>
+            <PageTitle
+              title={config.name ? `${config.name} – ${t("Login")}` : t("Login")}
             />
-            {hasMultipleProviders && (
+            {isCreate ? (
               <>
-                <Note>
-                  {t("You signed in with {{ authProviderName }} last time.", {
-                    authProviderName: defaultProvider.name,
+                <StyledHeading as="h2">
+                  {t("Create a workspace")}
+                </StyledHeading>
+                <Content>
+                  {t(
+                    "Get started by choosing a sign-in method for your new workspace below…"
+                  )}
+                </Content>
+              </>
+            ) : (
+              <>
+                <StyledHeading as="h2">
+                  {t("Log in to {{ authProviderName }}", {
+                    authProviderName: config.name || env.APP_NAME,
                   })}
-                </Note>
-                <Or data-text={t("Or")} />
+                </StyledHeading>
+                {children?.(config)}
               </>
             )}
-          </React.Fragment>
-        )}
-        {config.providers.map((provider) => {
-          if (defaultProvider && provider.id === defaultProvider.id) {
-            return null;
-          }
+            <Notices />
+            {defaultProvider && (
+              <React.Fragment key={defaultProvider.id}>
+                <AuthenticationProvider
+                  isCreate={isCreate}
+                  onEmailSuccess={handleEmailSuccess}
+                  preferOTP={preferOTP}
+                  {...defaultProvider}
+                />
+                {hasMultipleProviders && (
+                  <>
+                    <Note>
+                      {t("You signed in with {{ authProviderName }} last time.", {
+                        authProviderName: defaultProvider.name,
+                      })}
+                    </Note>
+                    <Or data-text={t("Or")} />
+                  </>
+                )}
+              </React.Fragment>
+            )}
+            {config.providers.map((provider) => {
+              if (defaultProvider && provider.id === defaultProvider.id) {
+                return null;
+              }
 
-          return (
-            <AuthenticationProvider
-              key={provider.id}
-              isCreate={isCreate}
-              onEmailSuccess={handleEmailSuccess}
-              preferOTP={preferOTP}
-              neutral={defaultProvider && hasMultipleProviders}
-              {...provider}
-            />
-          );
-        })}
-        {isCreate && (
-          <Note>
-            <Trans>
-              Already have an account? Go to <Link to="/">login</Link>.
-            </Trans>
-          </Note>
-        )}
-      </Centered>
+              return (
+                <AuthenticationProvider
+                  key={provider.id}
+                  isCreate={isCreate}
+                  onEmailSuccess={handleEmailSuccess}
+                  preferOTP={preferOTP}
+                  neutral={defaultProvider && hasMultipleProviders}
+                  {...provider}
+                />
+              );
+            })}
+            {isCreate && (
+              <Note>
+                <Trans>
+                  Already have an account? Go to <Link to="/">login</Link>.
+                </Trans>
+              </Note>
+            )}
+          </FormContent>
+        </FormPanel>
+      </LoginShell>
     </Background>
   );
 }
@@ -423,7 +436,10 @@ const Form = styled.form`
 `;
 
 const StyledHeading = styled(Heading)`
-  margin: 0;
+  margin: 0 0 28px;
+  font-size: 26px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 `;
 
 const Domain = styled.div`
@@ -435,19 +451,136 @@ const CheckEmailIcon = styled(EmailIcon)`
   margin-bottom: -1.5em;
 `;
 
-const Logo = styled.div`
-  margin-bottom: -4px;
+const LoginShell = styled.div`
+  display: grid;
+  grid-template-columns: minmax(270px, 0.82fr) minmax(0, 1.18fr);
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+
+  @media (max-width: 760px) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+  }
+`;
+
+const BrandPanel = styled.aside`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  padding: 48px clamp(28px, 4vw, 64px);
+  background: #173e36;
+  color: ${s("white")};
+
+  @media (max-width: 760px) {
+    min-height: 80px;
+    flex-direction: row;
+    align-items: center;
+    padding: calc(14px + env(safe-area-inset-top)) 20px 14px;
+  }
+`;
+
+const BrandIdentity = styled.div`
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+`;
+
+const BrandMark = styled.div`
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #d8f4e7;
+
+  @media (max-width: 760px) {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+  }
+`;
+
+const BrandName = styled.span`
+  min-width: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+
+  @media (max-width: 760px) {
+    font-size: 18px;
+  }
+`;
+
+const BrandSymbol = styled.div`
+  position: absolute;
+  right: 12%;
+  bottom: 25%;
+  display: grid;
+  place-items: center;
+  width: 184px;
+  height: 184px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  transform: rotate(-8deg);
+
+  @media (max-width: 760px) {
+    display: none;
+  }
+`;
+
+const BrandFooter = styled.div`
+  position: relative;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+
+  @media (max-width: 760px) {
+    display: none;
+  }
+`;
+
+const FormPanel = styled.main`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 100%;
+  padding: 64px 48px;
+  background: ${s("background")};
+
+  @media (max-width: 760px) {
+    min-height: 0;
+    padding: 44px 24px calc(32px + env(safe-area-inset-bottom));
+  }
+`;
+
+const FormContent = styled.div`
+  width: 100%;
+  max-width: 400px;
+  min-width: 0;
 `;
 
 const Content = styled(Text)`
   color: ${s("textSecondary")};
-  text-align: center;
-  margin-top: -8px;
+  text-align: start;
+  margin: -12px 0 24px;
 `;
 
 const Note = styled(Text)`
   color: ${s("textTertiary")};
-  text-align: center;
+  text-align: start;
   font-size: 14px;
   margin-top: 8px;
 

@@ -92,9 +92,8 @@ function AuthenticationProvider(props: Props) {
                 value={username}
                 onChange={handleChangeUsername}
                 disabled={isSubmitting}
-                autoFocus
+                autoComplete="username"
                 required
-                short
               />
               <InputLarge
                 type="password"
@@ -108,10 +107,18 @@ function AuthenticationProvider(props: Props) {
                 disabled={isSubmitting}
                 autoComplete="current-password"
                 required
-                short
               />
-              {hasAuthError && <Text type="secondary">{t("Invalid username or password")}</Text>}
-              <ButtonLarge type="submit" disabled={isSubmitting} {...rest}>
+              {hasAuthError && (
+                <Text type="secondary">
+                  {t("Invalid username or password")}
+                </Text>
+              )}
+              <ButtonLarge
+                type="submit"
+                disabled={isSubmitting}
+                fullwidth
+                {...rest}
+              >
                 {t("Sign In")} →
               </ButtonLarge>
             </>
@@ -147,8 +154,8 @@ const Form = styled.form`
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  justify-content: space-between;
+  align-items: stretch;
+  gap: 12px;
 `;
 
 export default AuthenticationProvider;
