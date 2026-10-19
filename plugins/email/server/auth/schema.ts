@@ -3,21 +3,28 @@ import { Client } from "@shared/types";
 import { BaseSchema } from "@server/routes/api/schema";
 
 export const EmailSchema = BaseSchema.extend({
-  body: z.object({
-    username: z
-      .string()
-      .trim()
-      .min(1)
-      .max(64)
-      .regex(/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/)
-      .optional(),
-    email: z.email().optional(),
-    password: z.string().min(8).max(256).optional(),
-    client: z.enum(Client).prefault(Client.Web),
-    preferOTP: z.boolean().prefault(false),
-  }).refine((body) => body.username || body.email, {
-    message: "A username is required",
-  }),
+  body: z
+    .object({
+      username: z
+        .string()
+        .trim()
+        .min(1)
+        .max(254)
+        .refine(
+          (value) =>
+            z.email().safeParse(value).success ||
+            (value.length <= 64 && /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(value)),
+          { message: "Enter a username or email address" }
+        )
+        .optional(),
+      email: z.email().trim().optional(),
+      password: z.string().min(8).max(256).optional(),
+      client: z.enum(Client).prefault(Client.Web),
+      preferOTP: z.boolean().prefault(false),
+    })
+    .refine((body) => body.username || body.email, {
+      message: "A username is required",
+    }),
 });
 
 export type EmailReq = z.infer<typeof EmailSchema>;

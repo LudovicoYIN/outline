@@ -19,10 +19,7 @@ import Time from "~/components/Time";
 import { VStack } from "~/components/primitives/VStack";
 import useQuery from "~/hooks/useQuery";
 import { useTableRequest } from "~/hooks/useTableRequest";
-import type {
-  FetchPageParams,
-  PaginatedResponse,
-} from "~/stores/base/Store";
+import type { FetchPageParams, PaginatedResponse } from "~/stores/base/Store";
 import { PAGINATION_SYMBOL } from "~/stores/base/Store";
 import { client } from "~/utils/ApiClient";
 
@@ -35,10 +32,12 @@ interface GlobalUser {
   lastActiveAt: string | null;
   isSuspended: boolean;
   createdAt: string;
-  team: {
+  memberships: {
     id: string;
-    name: string;
-  };
+    role: UserRole;
+    isSuspended: boolean;
+    team: { id: string; name: string };
+  }[];
 }
 
 interface GlobalUsersResponse {
@@ -53,7 +52,7 @@ interface GlobalUsersResponse {
 
 const EMPTY_USERS: GlobalUser[] = [];
 
-/** Displays workspace memberships across the installation to global admins. */
+/** Displays distinct login accounts and their workspace access to global admins. */
 function GlobalUsers() {
   const location = useLocation();
   const history = useHistory();
@@ -170,8 +169,25 @@ function GlobalUsers() {
         type: "data",
         id: "teamId",
         header: t("Workspace"),
-        accessor: (user) => user.team.name,
-        component: (user) => <Text selectable>{user.team.name}</Text>,
+        accessor: (user) =>
+          user.memberships.map(({ team }) => team.name).join(", "),
+        component: (user) => (
+          <VStack align="flex-start" spacing={0}>
+            {user.memberships.map((membership) => (
+              <Text key={membership.id} selectable>
+                {membership.team.name} ·{" "}
+                {membership.role === UserRole.Admin
+                  ? t("Admin")
+                  : membership.role === UserRole.Viewer
+                    ? t("Viewer")
+                    : membership.role === UserRole.Guest
+                      ? t("Guest")
+                      : t("Editor")}
+                {membership.isSuspended ? ` · ${t("Suspended")}` : ""}
+              </Text>
+            ))}
+          </VStack>
+        ),
         width: "2fr",
         sortable: false,
       },
@@ -197,8 +213,7 @@ function GlobalUsers() {
         type: "data",
         id: "status",
         header: t("Status"),
-        accessor: (user) =>
-          user.isSuspended ? 2 : user.lastActiveAt ? 0 : 1,
+        accessor: (user) => (user.isSuspended ? 2 : user.lastActiveAt ? 0 : 1),
         component: (user) =>
           user.isSuspended ? (
             <Badge>{t("Suspended")}</Badge>
@@ -230,7 +245,7 @@ function GlobalUsers() {
     <Scene title={t("User management")} icon={<GroupIcon />} wide>
       <Heading>{t("User management")}</Heading>
       <Text as="p" type="secondary">
-        {t("Each row represents a user’s membership in one workspace.")}
+        {t("Each account is listed once, with its workspaces and permissions.")}
       </Text>
       <InputSearch
         short
@@ -245,7 +260,7 @@ function GlobalUsers() {
           columns={columns}
           sort={sort}
           loading={loading}
-          rowHeight={58}
+          rowHeight={76}
           page={{ hasNext: !!next, fetchNext: next }}
         />
       </ConditionalFade>

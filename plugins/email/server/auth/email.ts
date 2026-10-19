@@ -30,21 +30,24 @@ router.post(
   validate(T.EmailSchema),
   async (ctx: APIContext<T.EmailReq>) => {
     const { username, email, password, client, preferOTP } = ctx.input.body;
-    const credential = (username ?? email ?? "").toLowerCase();
+    const credential = (username ?? email ?? "").trim().toLowerCase();
+    const isEmailCredential = credential.includes("@");
 
     const domain = parseDomain(ctx.request.hostname);
 
     let team: Team | null | undefined;
     if (!env.isCloudHosted) {
       const users = await User.scope("withTeam").findAll({
-        where: username
-          ? { username: credential }
-          : { email: credential },
+        where: isEmailCredential
+          ? { email: credential }
+          : { username: credential },
         order: [["createdAt", "ASC"]],
       });
 
       for (const candidate of users) {
         if (
+          !candidate.isSuspended &&
+          candidate.team.emailSigninEnabled &&
           password &&
           candidate.passwordHash &&
           (await verifyPassword(password, candidate.passwordHash))

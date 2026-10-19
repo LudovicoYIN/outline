@@ -37,6 +37,22 @@ import * as T from "./schema";
 
 const router = new Router();
 
+// Workspace membership rows share a login identity across the installation.
+const loginIdentitySql = `COALESCE(
+  'email:' || NULLIF(LOWER(TRIM("user"."email")), ''),
+  'username:' || NULLIF(LOWER(TRIM("user"."username")), ''),
+  'id:' || "user"."id"::text
+)`;
+
+/** Returns the identity shared by a user's workspace memberships. */
+function loginIdentity(user: User): string {
+  return user.email?.trim()
+    ? `email:${user.email.trim().toLowerCase()}`
+    : user.username?.trim()
+      ? `username:${user.username.trim().toLowerCase()}`
+      : `id:${user.id}`;
+}
+
 router.post(
   "users.global_list",
   auth(),
@@ -57,7 +73,15 @@ router.post(
     }
 
     const { query, sort, direction } = ctx.input.body;
-    const where: WhereOptions<User> = {};
+    const where: WhereOptions<User> = {
+      [Op.and]: Sequelize.literal(`"user"."id" IN (
+        SELECT DISTINCT ON (${loginIdentitySql}) "user"."id"
+        FROM "users" AS "user"
+        INNER JOIN "teams" AS "team" ON "team"."id" = "user"."teamId"
+        WHERE "user"."deletedAt" IS NULL AND "team"."deletedAt" IS NULL
+        ORDER BY ${loginIdentitySql}, "user"."createdAt" ASC, "user"."id" ASC
+      )`),
+    };
 
     if (query) {
       where[Op.or] = [
@@ -102,22 +126,49 @@ router.post(
         })
     );
 
+    const memberships = users.length
+      ? await User.findAll({
+          where: Sequelize.where(Sequelize.literal(loginIdentitySql), {
+            [Op.in]: users.map(loginIdentity),
+          }),
+          include: [teamInclude],
+          order: [["createdAt", "ASC"]],
+        })
+      : [];
+
     ctx.body = {
       pagination: page,
-      data: users.map((user) => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        lastActiveAt: user.lastActiveAt,
-        isSuspended: user.isSuspended,
-        createdAt: user.createdAt,
-        team: {
-          id: user.team.id,
-          name: user.team.name,
-        },
-      })),
+      data: users.map((user) => {
+        const accounts = memberships.filter(
+          (membership) => loginIdentity(membership) === loginIdentity(user)
+        );
+        const lastActiveAt = accounts.reduce<Date | null>(
+          (latest, account) =>
+            account.lastActiveAt && (!latest || account.lastActiveAt > latest)
+              ? account.lastActiveAt
+              : latest,
+          null
+        );
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          username: user.username,
+          role: accounts.some((account) => account.isAdmin)
+            ? UserRole.Admin
+            : user.role,
+          lastActiveAt,
+          isSuspended: accounts.every((account) => account.isSuspended),
+          createdAt: user.createdAt,
+          memberships: accounts.map((account) => ({
+            id: account.id,
+            role: account.role,
+            isSuspended: account.isSuspended,
+            team: { id: account.team.id, name: account.team.name },
+          })),
+        };
+      }),
     };
   }
 );

@@ -48,7 +48,9 @@ function AuthenticationProvider(props: Props) {
 
       try {
         const response = await client.post(event.currentTarget.action, {
-          username,
+          ...(username.includes("@")
+            ? { email: username.trim().toLowerCase() }
+            : { username: username.trim() }),
           password,
           client: clientType,
           preferOTP,
@@ -88,11 +90,13 @@ function AuthenticationProvider(props: Props) {
               <InputLarge
                 type="text"
                 name="username"
-                placeholder={t("Username")}
+                placeholder={t("Username or email")}
                 value={username}
                 onChange={handleChangeUsername}
                 disabled={isSubmitting}
                 autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
                 required
               />
               <InputLarge
