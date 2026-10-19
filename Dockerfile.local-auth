@@ -1,0 +1,12 @@
+FROM outlinewiki/outline:1.11.0
+
+WORKDIR /opt/outline
+
+LABEL org.opencontainers.image.source="https://github.com/LudovicoYIN/outline"
+LABEL org.opencontainers.image.revision="070f19329066604b3a05242e45d8d71c42c1d1fc"
+
+COPY build/ ./build/
+COPY server/ ./server/
+COPY public/ ./public/
+COPY .sequelizerc ./
+COPY package.json ./
