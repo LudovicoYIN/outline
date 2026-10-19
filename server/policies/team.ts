@@ -34,10 +34,12 @@ allow(User, "share", Team, (actor, team) =>
 allow(User, "createTeam", Team, (actor, team) =>
   and(
     //
-    isCloudHosted(),
     !actor.isGuest,
     !actor.isViewer,
-    or(actor.isAdmin, !!team?.memberTeamCreate)
+    or(
+      actor.isAdmin,
+      and(isCloudHosted(), !!team?.memberTeamCreate)
+    )
   )
 );
 

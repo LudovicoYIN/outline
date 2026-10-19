@@ -500,9 +500,7 @@ class Team extends ParanoidModel<
 
   @BeforeCreate
   static async setPreferences(model: Team) {
-    // Set here rather than in TeamPreferenceDefaults as we only want to enable by default for new
-    // workspaces.
-    model.setPreference(TeamPreference.MembersCanInvite, true);
+    model.setPreference(TeamPreference.MembersCanInvite, false);
 
     // Set last active at on creation.
     model.lastActiveAt = new Date();

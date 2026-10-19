@@ -3,6 +3,7 @@ import { User, Team } from "@server/models";
 import { allow } from "./cancan";
 import {
   and,
+  isCloudHosted,
   isTeamAdmin,
   isTeamMember,
   isTeamModel,
@@ -27,7 +28,9 @@ allow(User, "inviteUser", Team, (actor, team) =>
     isTeamMutable(actor),
     !actor.isGuest,
     !actor.isViewer,
-    actor.isAdmin || !!team?.getPreference(TeamPreference.MembersCanInvite)
+    actor.isAdmin ||
+      (isCloudHosted() &&
+        !!team?.getPreference(TeamPreference.MembersCanInvite))
   )
 );
 

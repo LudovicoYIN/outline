@@ -253,18 +253,24 @@ function Security() {
         </Trans>
       </Text>
 
-      <Heading as="h2">{t("Invites")}</Heading>
-      <SettingRow
-        label={t("Allow users to send invites")}
-        name={TeamPreference.MembersCanInvite}
-        description={t("Allow editors to invite other people to the workspace")}
-      >
-        <Switch
-          id={TeamPreference.MembersCanInvite}
-          checked={team.getPreference(TeamPreference.MembersCanInvite)}
-          onChange={handleMembersCanInviteChange}
-        />
-      </SettingRow>
+      {isCloudHosted && (
+        <>
+          <Heading as="h2">{t("Invites")}</Heading>
+          <SettingRow
+            label={t("Allow users to send invites")}
+            name={TeamPreference.MembersCanInvite}
+            description={t(
+              "Allow editors to invite other people to the workspace"
+            )}
+          >
+            <Switch
+              id={TeamPreference.MembersCanInvite}
+              checked={team.getPreference(TeamPreference.MembersCanInvite)}
+              onChange={handleMembersCanInviteChange}
+            />
+          </SettingRow>
+        </>
+      )}
       {isCloudHosted && (
         <SettingRow
           label={t("Require invites")}

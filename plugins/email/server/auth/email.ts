@@ -36,7 +36,33 @@ router.post(
 
     let team: Team | null | undefined;
     if (!env.isCloudHosted) {
-      team = await Team.scope("withAuthenticationProviders").findOne();
+      const users = await User.scope("withTeam").findAll({
+        where: username
+          ? { username: credential }
+          : { email: credential },
+        order: [["createdAt", "ASC"]],
+      });
+
+      for (const candidate of users) {
+        if (
+          password &&
+          candidate.passwordHash &&
+          (await verifyPassword(password, candidate.passwordHash))
+        ) {
+          if (!candidate.team.emailSigninEnabled) {
+            throw AuthorizationError();
+          }
+
+          ctx.body = {
+            redirect: `${candidate.team.url}/auth/email.callback?token=${encodeURIComponent(
+              candidate.getEmailSigninToken(ctx)
+            )}`,
+          };
+          return;
+        }
+      }
+
+      throw AuthenticationError("Invalid username or password");
     } else if (domain.custom) {
       team = await Team.scope("withAuthenticationProviders").findOne({
         where: { domain: domain.host.toLowerCase() },
@@ -58,24 +84,6 @@ router.post(
           ? { teamId: team.id, username: credential }
           : { teamId: team.id, email: credential },
     });
-
-    if (!env.isCloudHosted) {
-      if (
-        !user ||
-        !password ||
-        !user.passwordHash ||
-        !(await verifyPassword(password, user.passwordHash))
-      ) {
-        throw AuthenticationError("Invalid username or password");
-      }
-
-      ctx.body = {
-        redirect: `${team.url}/auth/email.callback?token=${encodeURIComponent(
-          user.getEmailSigninToken(ctx)
-        )}`,
-      };
-      return;
-    }
 
     if (!user) {
       ctx.body = {
